@@ -1,21 +1,40 @@
-    export interface ReservaRequest {
-    id: number;
-    huesped: string;
-    idHabitacion: number;
-    fechaEntrada: string; // puedes usar string o Date según tu backend
-    fechaSalida: string;
-    noches: number;
-    total: number;
-    idEstado: string;
-    }
+import { HabitacionResponse } from "./Habitacion.models";
+import { HuespedResponse } from "./Huesped.models";
 
-    export interface ReservaResponse {
-    id: number;
-    huesped: string;
-    idHabitacion: number;
+        export interface ReservaRequest {
+    id?: number;
+    idHuesped: number;      
+    idHabitacion: number;   
     fechaEntrada: string;
     fechaSalida: string;
     noches: number;
     total: number;
-    idEstado: string;
-    }
+    idEstado: number; // ← CORREGIR: Debe ser number, no string
+}
+
+   export interface ReservaResponse {
+    id: number;
+    Huesped: {  // ← CON MAYÚSCULA
+        id: number;
+        nombre: string;
+        apellido: string;
+        email: string;
+        telefono: string;
+        idDocumento: number;
+        nacionalidad: string;
+    };
+    Habitacion: {  // ← CON MAYÚSCULA
+        id: number;
+        numero: number;
+        tipo: string;
+        descripcion: string;
+        precio: number;
+        capacidad: number;
+        idEstado: number;
+    };
+    fechaEntrada: string;
+    fechaSalida: string;
+    noches: number;
+    total: number;
+    idEstado: number;
+}

@@ -10,7 +10,7 @@
             <tr style="text-align: center;">
                 <th scope="col">#</th>
                 <th scope="col">Huesped</th>
-                <th scope="col">Habitacion</th>
+                <th scope="col 3">Habitacion</th>
                 <th scope="col">Fecha de Entrada</th>
                 <th scope="col">Fecha de Salida</th>
                 <th scope="col">Noches</th>
@@ -23,13 +23,25 @@
             <tr style="text-align: center;" *ngFor="let reserva of reservas; let i = index">
                 <td>{{ i + 1 }}</td>
                 <td hidden>{{ reserva.id }}</td>
-                <td>{{ reserva.huesped }}</td>
-                <td>{{ reserva.idHabitacion }}</td>
+
+                <!-- COLUMNA HUÉSPED - CON MAYÚSCULAS -->
+                <td>
+                    {{ reserva.Huesped?.nombre }} {{ reserva.Huesped?.apellido }}
+                </td>
+                
+                <!-- COLUMNA HABITACIÓN - CON MAYÚSCULAS -->
+                <td>
+                    Habitación {{ reserva.Habitacion?.numero }} - {{ reserva.Habitacion?.tipo }}
+                </td>
+
                 <td>{{ reserva.fechaEntrada }}</td>
                 <td>{{ reserva.fechaSalida }}</td>
                 <td>{{ reserva.noches }}</td>
-                <td>{{ reserva.total }}</td>
-               <td>{{reservaMap[reserva.idEstado + ''] }}</td>
+                <td>{{ reserva.total | currency }}</td>
+
+                <!-- ESTADO CORREGIDO (quitar el + '') -->
+                <td>{{ reservaMap[reserva.idEstado] }}</td>
+
                 <td *ngIf="showActions">
                     <button class="btn btn-primary btn-sm me-1" (click)="editReserva(reserva)"><i
                             class="fa fa-edit"></i> Editar</button>
@@ -48,63 +60,69 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Cerrar"></button>
                 </div>
-               <div class="modal-body">
+                <div class="modal-body">
                     <form [formGroup]="reservaForm" (ngSubmit)="onSumbmit()">
                         <div class="mb-3">
-                            <label for="huesped" class="form-label">Huésped</label>
-                            <select id="huesped" class="form-select" formControlName="huesped">
-                                <option value="huesped.id">Seleccione un huésped</option>
-                                <option *ngFor="let huesped of huespedes" [value]="huesped.idHuesped">
-                                    {{ huesped.nombre }}
-                                </option>   
-                            </select>
-                            <div *ngIf="reservaForm.get('huesped')?.invalid && reservaForm.get('huesped')?.touched" 
-                                 class="text-danger small">
-                                Este campo es requerido
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="idHabitacion" class="form-label">Habitación</label>
-                            <select id="idHabitacion" class="form-select" formControlName="idHabitacion">
-                                <option value="">Seleccione una habitación</option>
-                                <option *ngFor="let habitacion of habitaciones" [value]="habitacion.id">
-                                    Habitación {{ habitacion.numero }} - {{ habitacion.tipo }} ({{ habitacion.precio | currency }})
+                            <label for="idHuesped" class="form-label">Huésped</label>
+                            <select id="idHuesped" class="form-select" formControlName="idHuesped">
+                                <option [value]="null">Seleccione un huésped</option>
+                                <option *ngFor="let huesped of huespedes" [value]="huesped.id">
+                                    {{ huesped.nombre }} {{ huesped.apellido }}
                                 </option>
                             </select>
-                            <div *ngIf="reservaForm.get('idHabitacion')?.invalid && reservaForm.get('idHabitacion')?.touched" 
-                                 class="text-danger small">
+                            <div *ngIf="reservaForm.get('Huesped')?.invalid && reservaForm.get('Huesped')?.touched"
+                                class="text-danger small">
                                 Este campo es requerido
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="fechaEntrada" class="form-label">Fecha de Entrada</label>
-                            <input type="date"  id="fechaEntrada" class="form-control" formControlName="fechaEntrada" maxlength="50" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="fechaSalida" class="form-label">Fecha de Salida</label>
-                            <input type="date" id="fechaSalida" class="form-control" formControlName="fechaSalida" maxlength="30" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="noches" class="form-label">Noches</label>
-                            <input id="noches" class="form-control" formControlName="noches" maxlength="30" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="total" class="form-label">Total</label>
-                            <input id="total" class="form-control" formControlName="total" maxlength="30" />
-                        </div>
-                     
-                         <div class="mb-3">
-                             <label for="idEstado" class="form-label">Selecciona un Estado</label>
-                                 <select id="idEstado" class="form-control" formControlName="idEstado">
-    
-                                     <option value="1" selected>CONFIRMADA</option>
-                                     <option value="2">EN CURSO</option>
-                                     <option value="3">FINALIZADA</option>
-                                     <option value="4">CANCELADA</option>
-                                 </select>
+
+                        <div class="mb-">
+                            <label for="idHabitacion" class="form-label">Habitación</label>
+                            <select id="idHabitacion" class="form-select" formControlName="idHabitacion">
+                                <option [value]="null">Seleccione una habitación</option>
+                                <option *ngFor="let habitacion of habitaciones" [value]="habitacion.id">
+                                    Habitación {{ habitacion.numero }} - {{ habitacion.tipo }} ({{ habitacion.precio |
+                                    currency }})
+                                </option>
+                            </select>
+                            <div *ngIf="reservaForm.get('idHabitacion')?.invalid && reservaForm.get('idHabitacion')?.touched"
+                                class="text-danger small">
+                                Este campo es requerido
+                            </div>
                         </div>
 
+                        <div class="mb-3">
+                            <label for="fechaEntrada" class="form-label">Fecha de Entrada</label>
+                            <input id="fechaEntrada" type="date" class="form-control" formControlName="fechaEntrada"
+                                [min]="today" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="fechaSalida" class="form-label">Fecha de Salida</label>
+                            <input id="fechaSalida" type="date" class="form-control" formControlName="fechaSalida"
+                                [min]="reservaForm.get('fechaEntrada')?.value" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="noches" class="form-label">Noches</label>
+                            <input id="noches" class="form-control" formControlName="noches" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="total" class="form-label">Total</label>
+                            <input id="total" class="form-control" formControlName="total" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="idEstado" class="form-label">Selecciona un Estado</label>
+                            <select id="idEstado" class="form-control" formControlName="idEstado">
+                                <!-- CORREGIDO: Usar [value] con números -->
+                                <option [value]="1">CONFIRMADA</option>
+                                <option [value]="2">EN CURSO</option>
+                                <option [value]="3">FINALIZADA</option>
+                                <option [value]="4">CANCELADA</option>
+                            </select>
+                        </div>
 
                         <div class="text-center">
                             <button type="submit" class="btn btn-success px-4" [disabled]="reservaForm.invalid">

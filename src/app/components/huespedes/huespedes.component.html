@@ -1,89 +1,89 @@
-<div class="container-fluid mt-4">
-    <h2>Huespedes</h2>
-    <div class="d-flex justify-content-between mb-3">
-        <button (click)="toggleForm()" class="btn btn-success"><i class="fa fa-plus"></i>
-            Registrar Huespedes 
-        </button>
-    </div>
-    <table class="table table-striped table-bordered mt-3">
-        <thead class="table-dark">
-            <tr style="text-align: center;">
-                <th scope="col">#</th>
-                <th scope="col">Nombre</th>
-                <th scope="col">Apellido</th>
-                <th scope="col">Email</th>
-                <th scope="col">Telefono</th>
-                <th scope="col">Documento</th>
-                <th scope="col">Nacionalidad</th>
-                <th scope="col" *ngIf="showActions">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr style="text-align: center;" *ngFor="let huesped of huespedes; let i = index">
-                <td>{{ i + 1 }}</td>
-                <td hidden>{{ huesped.idHuesped }}</td>
-                <td>{{ huesped.nombre }}</td>
-                <td>{{ huesped.apellido }}</td>
-                <td>{{ huesped.email }}</td>
-                <td>{{ huesped.telefono }}</td>
-                <td>{{documentoMap[huesped.idDocumento + ''] }}</td>
-                <td>{{ huesped.nacionalidad }}</td>
-                <td *ngIf="showActions">
-                    <button class="btn btn-primary btn-sm me-1" (click)="editHuesped(huesped)"><i
-                            class="fa fa-edit"></i> Editar</button>
-                    <button class="btn btn-danger btn-sm ms-1" (click)="deleteHuesped(huesped)"><i
-                            class="fa fa-trash"></i> Eliminar</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="container-fluid mt-4">
+        <h2>Huespedes</h2>
+        <div class="d-flex justify-content-between mb-3">
+            <button (click)="toggleForm()" class="btn btn-success"><i class="fa fa-plus"></i>
+                Registrar Huespedes 
+            </button>
+        </div>
+        <table class="table table-striped table-bordered mt-3">
+            <thead class="table-dark">
+                <tr style="text-align: center;">
+                    <th scope="col">#</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Apellido</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Telefono</th>
+                    <th scope="col">Documento</th>
+                    <th scope="col">Nacionalidad</th>
+                    <th scope="col" *ngIf="showActions">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="text-align: center;" *ngFor="let huesped of huespedes; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td hidden>{{ huesped.id }}</td>
+                    <td>{{ huesped.nombre }}</td>
+                    <td>{{ huesped.apellido }}</td>
+                    <td>{{ huesped.email }}</td>
+                    <td>{{ huesped.telefono }}</td>
+                    <td>{{documentoMap[huesped.idDocumento] }}</td>
+                    <td>{{ huesped.nacionalidad }}</td>
+                    <td *ngIf="showActions">
+                        <button class="btn btn-primary btn-sm me-1" (click)="editHuesped(huesped)"><i
+                                class="fa fa-edit"></i> Editar</button>
+                        <button class="btn btn-danger btn-sm ms-1" (click)="deleteHuesped(huesped)"><i
+                                class="fa fa-trash"></i> Eliminar</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
 
-    <div class="modal fade" #huespedModalRef tabindex="-1" aria-labelledby="huespedModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title" id="huespedModalLabel">{{ modalText }}</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <form [formGroup]="huespedForm" (ngSubmit)="onSumbmit()">
-                        <div class="mb-3">
-                            <label for="nombre" class="form-label">Nombre</label>
-                            <input id="nombre" class="form-control" formControlName="nombre" maxlength="30" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="apellido" class="form-label">Apellido</label>
-                            <input id="apellido" class="form-control" formControlName="apellido" maxlength="30" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input id="email" class="form-control" formControlName="email" maxlength="50" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="telefono" class="form-label">Telefono</label>
-                            <input id="telefono" class="form-control" formControlName="telefono" maxlength="30" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="idDocumento" class="form-label">Selecciona un Documento</label>
-                                 <select id="idDocumento" class="form-control" formControlName="idDocumento">
-    
-                                     <option value="1" selected>INE</option>
-                                     <option value="2">Pasaporte</option>
-                                 </select>
-                                </div>
-                        <div class="mb-3">
-                            <label for="nacionalidad" class="form-label">Nacionalidad</label>
-                            <input id="nacionalidad" class="form-control" formControlName="nacionalidad" maxlength="30" />
-                        </div>
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-success px-4" [disabled]="huespedForm.invalid">
-                                Guardar
-                            </button>
-                        </div>
-                    </form>
+        <div class="modal fade" #huespedModalRef tabindex="-1" aria-labelledby="huespedModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title" id="huespedModalLabel">{{ modalText }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form [formGroup]="huespedForm" (ngSubmit)="onSumbmit()">
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre</label>
+                                <input id="nombre" class="form-control" formControlName="nombre" maxlength="30" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="apellido" class="form-label">Apellido</label>
+                                <input id="apellido" class="form-control" formControlName="apellido" maxlength="30" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input id="email" class="form-control" formControlName="email" maxlength="50" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="telefono" class="form-label">Telefono</label>
+                                <input id="telefono" class="form-control" formControlName="telefono" maxlength="30" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="idDocumento" class="form-label">Selecciona un Documento</label>
+                                    <select id="idDocumento" class="form-control" formControlName="idDocumento">
+        
+                                        <option value="1" selected>INE</option>
+                                        <option value="2">Pasaporte</option>
+                                    </select>
+                                    </div>
+                            <div class="mb-3">
+                                <label for="nacionalidad" class="form-label">Nacionalidad</label>
+                                <input id="nacionalidad" class="form-control" formControlName="nacionalidad" maxlength="30" />
+                            </div>
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-success px-4" [disabled]="huespedForm.invalid">
+                                    Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
