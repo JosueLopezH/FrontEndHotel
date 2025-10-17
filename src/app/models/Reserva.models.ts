@@ -1,20 +1,17 @@
-import { HabitacionResponse } from "./Habitacion.models";
-import { HuespedResponse } from "./Huesped.models";
-
-        export interface ReservaRequest {
+export interface ReservaRequest {
     id?: number;
-    idHuesped: number;      
-    idHabitacion: number;   
+    idHuesped: number;
+    idHabitacion: number;
     fechaEntrada: string;
     fechaSalida: string;
     noches: number;
     total: number;
-    idEstado: number; // ← CORREGIR: Debe ser number, no string
+    idEstado: number;
 }
 
-   export interface ReservaResponse {
+export interface ReservaResponse {
     id: number;
-    Huesped: {  // ← CON MAYÚSCULA
+    Huesped: {
         id: number;
         nombre: string;
         apellido: string;
@@ -23,7 +20,7 @@ import { HuespedResponse } from "./Huesped.models";
         idDocumento: number;
         nacionalidad: string;
     };
-    Habitacion: {  // ← CON MAYÚSCULA
+    Habitacion: {
         id: number;
         numero: number;
         tipo: string;

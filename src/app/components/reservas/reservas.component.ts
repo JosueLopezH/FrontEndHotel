@@ -30,6 +30,9 @@ export class ReservasComponent implements OnInit, AfterViewInit {
   isEditMode: boolean = false;
   showActions: boolean = false;
 
+  // Hacer públicos estos para el template
+  Roles = Roles;
+  
   @ViewChild('reservaModalRef') reservaModalEl!: ElementRef;
   private modalInstance!: any;
   today: string = new Date().toISOString().split('T')[0];
@@ -39,18 +42,17 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     private huespedesService: HuespedesService,
     private habitacionesService: HabitacionesService,
     private formBuilder: FormBuilder,
-    private authService: AuthService
+    public authService: AuthService // Cambiar a public para el template
   ) {
-    // FORMGROUP CORREGIDO - Campos numéricos como números
     this.reservaForm = this.formBuilder.group({
       id: [null],
-      idHuesped: [null, [Validators.required]], // ← CORREGIDO: Quitado maxLength para números
+      idHuesped: [null, [Validators.required]],
       idHabitacion: [null, [Validators.required]],
       fechaEntrada: ['', [Validators.required]],
       fechaSalida: ['', [Validators.required]],
       noches: [0, [Validators.required, Validators.min(1)]],
       total: [0, [Validators.required, Validators.min(0)]],
-      idEstado: [1, [Validators.required]], // ← CORREGIDO: Número en lugar de string
+      idEstado: [1, [Validators.required]],
     });
 
     this.setupDateValidators();
@@ -151,15 +153,15 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     return null;
   }
 
- listarReservas(): void {
-  this.reservasService.getReservas().subscribe({
-    next: resp => {
-      this.reservas = resp;
-      console.log('🔍 RESERVAS - Datos recibidos:', this.reservas);
-    },
-    error: err => console.error('Error al listar reservas', err)
-  });
-}
+  listarReservas(): void {
+    this.reservasService.getReservas().subscribe({
+      next: resp => {
+        this.reservas = resp;
+        console.log('🔍 RESERVAS - Datos recibidos:', this.reservas);
+      },
+      error: err => console.error('Error al listar reservas', err)
+    });
+  }
 
   toggleForm(): void {
     this.resetForm();
@@ -171,7 +173,11 @@ export class ReservasComponent implements OnInit, AfterViewInit {
   resetForm(): void {
     this.isEditMode = false;
     this.selectedReserva = null;
-    // RESET CORREGIDO - Valores por defecto apropiados
+    
+    // Habilitar todos los campos
+    this.reservaForm.get('idHuesped')?.enable();
+    this.reservaForm.get('idHabitacion')?.enable();
+    
     this.reservaForm.reset({
       id: null,
       idHuesped: null,
@@ -211,7 +217,17 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     if (this.reservaForm.valid) {
       const formValue = this.reservaForm.value;
       
-      // CONVERSIÓN EXPLÍCITA
+      // Validar transiciones de estado
+      if (this.selectedReserva && !this.validarTransicionEstado(this.selectedReserva.idEstado, formValue.idEstado)) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Transición no permitida',
+          text: 'No se permite cambiar al estado seleccionado',
+          confirmButtonColor: '#3085d6'
+        });
+        return;
+      }
+
       const reservaData: ReservaRequest = {
         id: formValue.id,
         idHuesped: Number(formValue.idHuesped),
@@ -221,7 +237,7 @@ export class ReservasComponent implements OnInit, AfterViewInit {
         noches: Number(formValue.noches),
         total: Number(formValue.total),
         idEstado: formValue.idEstado
-            };
+      };
 
       console.log('🔍 DEBUG - Reserva data final:', reservaData);
 
@@ -290,23 +306,195 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     }
   }
 
+  // CHECK-IN: Confirmada → En curso
+  checkIn(reserva: ReservaResponse): void {
+    Swal.fire({
+      title: 'Confirmar Check-In',
+      html: `¿Estás seguro de realizar el check-in para <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong>?<br>
+             Habitación: <strong>${reserva.Habitacion.numero}</strong><br>
+             Fecha de entrada: <strong>${this.formatDateForDisplay(reserva.fechaEntrada)}</strong>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, hacer Check-in',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#0dcaf0'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.actualizarEstadoReserva(reserva.id, 2, 'Check-in realizado exitosamente');
+      }
+    });
+  }
+
+  // CHECK-OUT: En curso → Finalizada
+  checkOut(reserva: ReservaResponse): void {
+    // Calcular estadía real
+    const fechaEntrada = new Date(reserva.fechaEntrada);
+    const fechaCheckout = new Date();
+    const diffTime = Math.abs(fechaCheckout.getTime() - fechaEntrada.getTime());
+    const nochesReales = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const totalReal = nochesReales * reserva.Habitacion.precio;
+
+    Swal.fire({
+      title: 'Confirmar Check-Out',
+      html: `¿Estás seguro de realizar el check-out para <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong>?<br>
+             Habitación: <strong>${reserva.Habitacion.numero}</strong><br>
+             Estadía real: <strong>${nochesReales} noches</strong><br>
+             Total a cobrar: <strong>$${totalReal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, hacer Check-out',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ffc107'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Crear objeto ReservaRequest con solo los campos necesarios
+        const reservaActualizada: ReservaRequest = {
+          id: reserva.id,
+          idHuesped: reserva.Huesped.id,
+          idHabitacion: reserva.Habitacion.id,
+          fechaEntrada: reserva.fechaEntrada,
+          fechaSalida: reserva.fechaSalida,
+          noches: nochesReales,
+          total: totalReal,
+          idEstado: 3 // Finalizada
+        };
+        
+        this.reservasService.putReserva(reservaActualizada, reserva.id).subscribe({
+          next: (updatedReserva) => {
+            const index = this.reservas.findIndex(r => r.id === updatedReserva.id);
+            if (index !== -1) this.reservas[index] = updatedReserva;
+            
+            Swal.fire({
+              icon: 'success',
+              title: 'Check-out Completado',
+              html: `Check-out realizado exitosamente para <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong><br>
+                     Total cobrado: <strong>$${totalReal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>`
+            });
+          },
+          error: (err) => {
+            console.error('Error al hacer check-out:', err);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'No se pudo realizar el check-out'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // MODIFICAR FECHAS (para reservas Confirmadas y En curso)
+  modificarFechas(reserva: ReservaResponse): void {
+    this.isEditMode = true;
+    this.selectedReserva = reserva;
+    this.modalText = 'Modificar Fechas de Reserva';
+    
+    // Solo permitir modificar fechas y estado
+    this.reservaForm.patchValue({ 
+      id: reserva.id,
+      idHuesped: reserva.Huesped.id,
+      idHabitacion: reserva.Habitacion.id,
+      fechaEntrada: this.formatDateForInput(reserva.fechaEntrada),
+      fechaSalida: this.formatDateForInput(reserva.fechaSalida),
+      noches: reserva.noches,
+      total: reserva.total,
+      idEstado: reserva.idEstado
+    });
+    
+    // Deshabilitar campos que no se pueden modificar
+    this.reservaForm.get('idHuesped')?.disable();
+    this.reservaForm.get('idHabitacion')?.disable();
+    
+    this.modalInstance.show();
+  }
+
+  // CANCELAR RESERVA: Confirmada → Cancelada
+  cancelarReserva(reserva: ReservaResponse): void {
+    Swal.fire({
+      title: 'Cancelar Reserva',
+      html: `¿Estás seguro de cancelar la reserva de <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong>?<br>
+             Habitación: <strong>${reserva.Habitacion.numero}</strong><br>
+             Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Cancelar',
+      cancelButtonText: 'Mantener Reserva',
+      confirmButtonColor: '#dc3545'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.actualizarEstadoReserva(reserva.id, 4, 'Reserva cancelada exitosamente');
+      }
+    });
+  }
+
+  // MÉTODO GENERAL PARA ACTUALIZAR ESTADO
+  private actualizarEstadoReserva(reservaId: number, nuevoEstado: number, mensajeExito: string): void {
+    const reserva = this.reservas.find(r => r.id === reservaId);
+    if (!reserva) return;
+
+    // Crear objeto ReservaRequest con solo los campos necesarios
+    const reservaActualizada: ReservaRequest = {
+      id: reserva.id,
+      idHuesped: reserva.Huesped.id,
+      idHabitacion: reserva.Habitacion.id,
+      fechaEntrada: reserva.fechaEntrada,
+      fechaSalida: reserva.fechaSalida,
+      noches: reserva.noches,
+      total: reserva.total,
+      idEstado: nuevoEstado
+    };
+
+    this.reservasService.putReserva(reservaActualizada, reservaId).subscribe({
+      next: (updatedReserva) => {
+        const index = this.reservas.findIndex(r => r.id === updatedReserva.id);
+        if (index !== -1) this.reservas[index] = updatedReserva;
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Éxito',
+          text: mensajeExito
+        });
+      },
+      error: (err) => {
+        console.error('Error al actualizar estado:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo actualizar el estado de la reserva'
+        });
+      }
+    });
+  }
+
   editReserva(reserva: ReservaResponse): void {
+    // Solo permitir editar reservas CONFIRMADAS
+    if (reserva.idEstado !== 1) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Edición no permitida',
+        text: 'Solo se pueden editar reservas en estado CONFIRMADA',
+        confirmButtonColor: '#3085d6'
+      });
+      return;
+    }
+
     this.isEditMode = true;
     this.selectedReserva = reserva;
     this.modalText = 'Editando Reserva';
     
     this.updateDateValidators();
     
-    // CORREGIDO: Usar directamente el idHuesped de la reserva
     this.reservaForm.patchValue({ 
       id: reserva.id,
-      Huesped: reserva.Huesped.id, // ← Usar directamente el ID
-      Habitacion: reserva.Habitacion.numero,
+      idHuesped: reserva.Huesped.id,
+      idHabitacion: reserva.Habitacion.id,
       fechaEntrada: this.formatDateForInput(reserva.fechaEntrada),
       fechaSalida: this.formatDateForInput(reserva.fechaSalida),
       noches: reserva.noches,
       total: reserva.total,
-      idEstado: Number(reserva.idEstado) // ← Asegurar que sea número
+      idEstado: reserva.idEstado
     });
     
     this.modalInstance.show();
@@ -433,6 +621,24 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     }
   }
 
+  // Validar transiciones de estado permitidas
+  private validarTransicionEstado(estadoActual: number, estadoNuevo: number): boolean {
+    const transicionesPermitidas: { [key: number]: number[] } = {
+      1: [1, 2, 4], // Confirmada → Confirmada, En curso, Cancelada
+      2: [2, 3],    // En curso → En curso, Finalizada
+      3: [3],       // Finalizada → Finalizada (terminal)
+      4: [4]        // Cancelada → Cancelada (terminal)
+    };
+
+    return transicionesPermitidas[estadoActual]?.includes(estadoNuevo) || false;
+  }
+
+  // Formatear fecha para display
+  private formatDateForDisplay(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES');
+  }
+
   // MAP CORREGIDO - Usar números como keys
   reservaMap: { [key: number]: string } = {
     1: 'Confirmada',
@@ -440,4 +646,6 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     3: 'Finalizada',
     4: 'Cancelada'
   };
+
+  
 }
