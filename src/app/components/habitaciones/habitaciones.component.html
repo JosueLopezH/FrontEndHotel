@@ -23,11 +23,11 @@
                 <td>{{ i + 1 }}</td>
                 <td hidden>{{ habitacion.id }}</td>
                 <td>{{ habitacion.numero }}</td>
-                <td>{{ habitacion.idtipo }}</td>
+                <td>{{ habitacion.tipo }}</td>
                 <td>{{ habitacion.descripcion }}</td>
                 <td>{{ habitacion.precio }}</td>
                 <td>{{ habitacion.capacidad }}</td>
-                <td>{{ habitacion.idEstado }}</td>
+                <td>{{ estadoMap[habitacion.idEstado + ''] }}</td>
                 <td *ngIf="showActions">
                     <button class="btn btn-primary btn-sm me-1" (click)="editHabitacion(habitacion)"><i
                             class="fa fa-edit"></i> Editar</button>
@@ -49,12 +49,12 @@
                 <div class="modal-body">
                     <form [formGroup]="habitacionForm" (ngSubmit)="onSumbmit()">
                         <div class="mb-3">
-                            <label for="numero" class="form-label">Numero</label>
+                            <label for="numero" class="form-label">Numero de Habitación</label>
                             <input id="numero" class="form-control" formControlName="numero" maxlength="30" />
                         </div>
                         <div class="mb-3">
-                            <label for="tipo" class="form-label">Tipo</label>
-                            <input id="tipo" class="form-control" formControlName="idtipo" maxlength="30" />
+                            <label for="tipo" class="form-label">Tipo de Habitación</label>
+                            <input id="tipo" class="form-control" formControlName="tipo" maxlength="30" />
                         </div>
                         <div class="mb-3">
                             <label for="descripcion" class="form-label">Descripcion</label>
@@ -69,8 +69,14 @@
                             <input id="capacidad" class="form-control" formControlName="capacidad" maxlength="30" />
                         </div>
                         <div class="mb-3">
-                            <label for="idEstado" class="form-label">Estado</label>
-                            <input id="idEstado" class="form-control" formControlName="idEstado" maxlength="30" />
+                             <label for="idEstado" class="form-label">Selecciona un estado</label>
+                                 <select id="idEstado" class="form-control" formControlName="idEstado">
+    
+                                     <option value="1" selected>Disponible</option>
+                                     <option value="2">Ocupada</option>
+                                     <option value="3">En Limpieza</option>
+                                     <option value="4">En Mantenimiento</option>
+                                 </select>
                         </div>
                         <div class="text-center">
                             <button type="submit" class="btn btn-success px-4" [disabled]="habitacionForm.invalid">

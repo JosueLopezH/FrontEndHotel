@@ -1,20 +1,20 @@
-    import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-    import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-    import Swal from 'sweetalert2';
-    import { AuthService } from '../../services/auth.service';
-    import { HabitacionResponse } from '../../models/Habitacion.models';
-    import { Roles } from '../../constants/constanst';
-    import { HabitacionesService } from '../../services/habitaciones.service';
+import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import Swal from 'sweetalert2';
+import { AuthService } from '../../services/auth.service';
+import { HabitacionResponse } from '../../models/Habitacion.models';
+import { Roles } from '../../constants/constanst';
+import { HabitacionesService } from '../../services/habitaciones.service';
 
-    declare var bootstrap: any;
+declare var bootstrap: any;
 
-    @Component({
+@Component({
     selector: 'app-habitaciones',
     standalone: false,
     templateUrl: './habitaciones.component.html',
     styleUrl: './habitaciones.component.css'
-    })
-    export class HabitacionesComponent implements OnInit, AfterViewInit {
+})
+export class HabitacionesComponent implements OnInit, AfterViewInit {
 
     habitaciones: HabitacionResponse[] = [];
     habitacionForm: FormGroup;
@@ -32,20 +32,20 @@
         private authService: AuthService
     ) {
         this.habitacionForm = this.formBuilder.group({
-        id: [null],
-        numero: ['', [Validators.required, Validators.maxLength(30), Validators.pattern(/^(?!\s*$).+/)]],
-        idtipo: ['', [Validators.required, Validators.maxLength(30), Validators.pattern(/^(?!\s*$).+/)]],
-        descripcion: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^(?!\s*$).+/)]],
-        precio: ['', [Validators.required, Validators.pattern(/^[0-9]+(\.[0-9]{1,2})?$/)]],
-        capacidad: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
-        idEstado: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^(?!\s*$).+/)]],
+            id: [null],
+            numero: ['', [Validators.required, Validators.maxLength(30), Validators.pattern(/^(?!\s*$).+/)]],
+            tipo: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^(?!\s*$).+/)]],
+            descripcion: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^(?!\s*$).+/)]],
+            precio: ['', [Validators.required, Validators.pattern(/^[0-9]+(\.[0-9]{1,2})?$/)]],
+            capacidad: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
+            idEstado: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^(?!\s*$).+/)]],
         });
     }
 
     ngOnInit(): void {
         this.listarHabitaciones();
         if (this.authService.hasRole(Roles.ADMIN)) {
-        this.showActions = true;
+            this.showActions = true;
         }
     }
 
@@ -55,16 +55,16 @@
 
         // Resetea el formulario al cerrar el modal
         this.habitacionModalEl.nativeElement.addEventListener('hidden.bs.modal', () => {
-        this.resetForm();
+            this.resetForm();
         });
     }
 
     listarHabitaciones(): void {
         this.habitacionesService.getHabitaciones().subscribe({
-        next: resp => {
-            this.habitaciones = resp;
-        },
-        error: err => console.error('Error al listar habitaciones', err)
+            next: resp => {
+                this.habitaciones = resp;
+            },
+            error: err => console.error('Error al listar habitaciones', err)
         });
     }
 
@@ -89,63 +89,108 @@
     }
 
     onSumbmit(): void {
-        if (this.habitacionForm.valid) {
+        if (this.habitacionForm.invalid) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Formulario incompleto',
+                text: 'Por favor completa todos los campos obligatorios'
+            });
+            return;
+        }
+
         const habitacionData = this.habitacionForm.value;
+
         if (this.isEditMode) {
             this.habitacionesService.putHabitacion(habitacionData, habitacionData.id).subscribe({
-            next: habitacion => {
-                const index = this.habitaciones.findIndex(h => h.id === habitacion.id);
-                if (index !== -1) {
-                this.habitaciones[index] = habitacion;
+                next: habitacion => {
+                    const index = this.habitaciones.findIndex(h => h.id === habitacion.id);
+                    if (index !== -1) {
+                        this.habitaciones[index] = habitacion;
+                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Habitación Actualizada',
+                        text: 'La habitación ha sido actualizada exitosamente'
+                    });
+                    this.resetForm();
+                    this.modalInstance.hide();
+                },
+                error: err => {
+                    // Manejo de errores del backend
+                    let errorMessage = 'Error al actualizar la habitación';
+                    if (err.error?.message) errorMessage = err.error.message;
+                    if (err.error?.errors && Array.isArray(err.error.errors)) {
+                        errorMessage = err.error.errors.join('<br>');
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: errorMessage
+                    });
                 }
-                Swal.fire({
-                icon: 'success',
-                title: 'Habitación Actualizada',
-                text: 'La habitación ha sido actualizada exitosamente'
-                });
-                this.resetForm();
-                this.modalInstance.hide();
-            }
             });
         } else {
             this.habitacionesService.postHabitacion(habitacionData).subscribe({
-            next: habitacion => {
-                this.habitaciones.push(habitacion);
-                Swal.fire({
-                icon: 'success',
-                title: 'Habitación Registrada',
-                text: 'La habitación ha sido registrada exitosamente'
-                });
-                this.resetForm();
-                this.modalInstance.hide();
-            }
+                next: habitacion => {
+                    this.habitaciones.push(habitacion);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Habitación Registrada',
+                        text: 'La habitación ha sido registrada exitosamente'
+                    });
+                    this.resetForm();
+                    this.modalInstance.hide();
+                },
+                error: err => {
+                    // Manejo de errores del backend
+                    let errorMessage = 'Error al registrar la habitación';
+                    if (err.error?.message) errorMessage = err.error.message;
+                    if (err.error?.errors && Array.isArray(err.error.errors)) {
+                        errorMessage = err.error.errors.join('<br>');
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: errorMessage
+                    });
+                }
             });
         }
-        }
     }
+
+
+
 
     deleteHabitacion(habitacion: HabitacionResponse): void {
         Swal.fire({
-        title: '¿Estás seguro de eliminar esta habitación?',
-        text: 'Esta acción no se puede deshacer.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+            title: '¿Estás seguro de eliminar esta habitación?',
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
         }).then((result: { isConfirmed: any; }) => {
-        if (result.isConfirmed && habitacion.id) {
-            this.habitacionesService.deleteHabitacion(habitacion.id).subscribe({
-            next: () => {
-                this.habitaciones = this.habitaciones.filter(h => h.id !== habitacion.id);
-                Swal.fire({
-                icon: 'success',
-                title: 'Habitación Eliminada',
-                text: 'La habitación ha sido eliminada correctamente'
+            if (result.isConfirmed && habitacion.id) {
+                this.habitacionesService.deleteHabitacion(habitacion.id).subscribe({
+                    next: () => {
+                        this.habitaciones = this.habitaciones.filter(h => h.id !== habitacion.id);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Habitación Eliminada',
+                            text: 'La habitación ha sido eliminada correctamente'
+                        });
+                    }
                 });
             }
-            });
-        }
         });
     }
 
-    }
+    estadoMap: { [key: string]: string } = {
+        '1': 'Disponible',
+        '2': 'Ocupada',
+        '3': 'En Limpieza',
+        '4': 'En Mantenimiento'
+    };
+
+
+}

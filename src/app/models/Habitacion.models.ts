@@ -1,6 +1,6 @@
     export interface HabitacionRequest {
     numero: string;
-    idtipo: string;
+    tipo: string;
     descripcion: string;
     precio: number;
     capacidad: number;
@@ -10,7 +10,7 @@
     export interface HabitacionResponse {
     id: number;
     numero: string;
-    idtipo: string;
+    tipo: string;
     descripcion: string;
     precio: number;
     capacidad: number;
