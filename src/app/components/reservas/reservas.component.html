@@ -26,12 +26,12 @@
 
                 <!-- COLUMNA HUÉSPED - CON MAYÚSCULAS -->
                 <td>
-                    {{ reserva.Huesped?.nombre }} {{ reserva.Huesped?.apellido }}
+                    {{ reserva.Huesped.nombre }} {{ reserva.Huesped.apellido }}
                 </td>
                 
                 <!-- COLUMNA HABITACIÓN - CON MAYÚSCULAS -->
                 <td>
-                    Habitación {{ reserva.Habitacion?.numero }} - {{ reserva.Habitacion?.tipo }}
+                    Habitación {{ reserva.Habitacion.numero }} - {{ reserva.Habitacion.tipo }}
                 </td>
 
                 <td>{{ reserva.fechaEntrada }}</td>
@@ -40,15 +40,55 @@
                 <td>{{ reserva.total | currency }}</td>
 
                 <!-- ESTADO CORREGIDO (quitar el + '') -->
-                <td>{{ reservaMap[reserva.idEstado] }}</td>
+                 <td>
+                    <span [ngClass]="{
+                        'badge bg-success': reserva.idEstado === 1,
+                        'badge bg-primary': reserva.idEstado === 2,
+                        'badge bg-secondary': reserva.idEstado === 3,
+                        'badge bg-danger': reserva.idEstado === 4
+                    }">
+                        {{ reservaMap[reserva.idEstado] }}
+                    </span>
+                </td>
 
+               
                 <td *ngIf="showActions">
-                    <button class="btn btn-primary btn-sm me-1" (click)="editReserva(reserva)"><i
-                            class="fa fa-edit"></i> Editar</button>
-                    <button class="btn btn-danger btn-sm ms-1" (click)="deleteReserva(reserva)"><i
-                            class="fa fa-trash"></i> Eliminar</button>
+                    <!-- Botón CHECK-IN (solo para reservas CONFIRMADAS) -->
+                    <button *ngIf="reserva.idEstado === 1" class="btn btn-info btn-sm me-1" (click)="checkIn(reserva)"
+                        title="Check-In">
+                        <i class="fa fa-sign-in"></i> Check-in
+                    </button>
+
+                    <!-- Botón CHECK-OUT (solo para reservas EN CURSO) -->
+                    <button *ngIf="reserva.idEstado === 2" class="btn btn-warning btn-sm me-1"
+                        (click)="checkOut(reserva)" title="Check-Out">
+                        <i class="fa fa-sign-out"></i> Check-out
+                    </button>
+
+                    <!-- Botón MODIFICAR FECHAS (solo para reservas CONFIRMADAS y EN CURSO) -->
+                    <button *ngIf="reserva.idEstado === 1 || reserva.idEstado === 2"
+                        class="btn btn-secondary btn-sm me-1" (click)="modificarFechas(reserva)"
+                        title="Modificar Fechas">
+                        <i class="fa fa-calendar"></i> Fechas
+                    </button>
+
+                    <!-- Botón CANCELAR (solo para reservas CONFIRMADAS) -->
+                    <button *ngIf="reserva.idEstado === 1" class="btn btn-danger btn-sm me-1"
+                        (click)="cancelarReserva(reserva)" title="Cancelar Reserva">
+                        <i class="fa fa-times"></i> Cancelar
+                    </button>
+
+                    <!-- Botón EDITAR (solo para reservas CONFIRMADAS) -->
+                    <button *ngIf="reserva.idEstado === 1" class="btn btn-primary btn-sm me-1"
+                        (click)="editReserva(reserva)" title="Editar Reserva">
+                        <i class="fa fa-edit"></i> Editar
+                    </button>
+
+                    
                 </td>
             </tr>
+
+           
         </tbody>
     </table>
 
@@ -76,20 +116,43 @@
                             </div>
                         </div>
 
-                        <div class="mb-">
-                            <label for="idHabitacion" class="form-label">Habitación</label>
-                            <select id="idHabitacion" class="form-select" formControlName="idHabitacion">
-                                <option [value]="null">Seleccione una habitación</option>
-                                <option *ngFor="let habitacion of habitaciones" [value]="habitacion.id">
-                                    Habitación {{ habitacion.numero }} - {{ habitacion.tipo }} ({{ habitacion.precio |
-                                    currency }})
-                                </option>
-                            </select>
-                            <div *ngIf="reservaForm.get('idHabitacion')?.invalid && reservaForm.get('idHabitacion')?.touched"
-                                class="text-danger small">
-                                Este campo es requerido
-                            </div>
-                        </div>
+                       <div class="mb-3">
+  <label for="idHabitacion" class="form-label">Habitación</label>
+  <select id="idHabitacion" class="form-select" formControlName="idHabitacion">
+    <option [value]="null">Seleccione una habitación</option>
+    <!-- Usar habitaciones disponibles cuando hay fechas, sino todas -->
+    <ng-container *ngIf="reservaForm.get('fechaEntrada')?.value && reservaForm.get('fechaSalida')?.value; else allRooms">
+      <option *ngFor="let habitacion of getHabitacionesDisponibles(
+        reservaForm.get('fechaEntrada')?.value, 
+        reservaForm.get('fechaSalida')?.value
+      )" [value]="habitacion.id">
+        Habitación {{ habitacion.numero }} - {{ habitacion.tipo }} ({{ habitacion.precio | currency }})
+        <span class="text-success"></span>
+      </option>
+    </ng-container>
+    <ng-template #allRooms>
+      <option *ngFor="let habitacion of habitaciones" [value]="habitacion.id">
+        Habitación {{ habitacion.numero }} - {{ habitacion.tipo }} ({{ habitacion.precio | currency }})
+      </option>
+    </ng-template>
+  </select>
+  <div *ngIf="reservaForm.get('idHabitacion')?.invalid && reservaForm.get('idHabitacion')?.touched"
+      class="text-danger small">
+      Este campo es requerido
+  </div>
+  
+  <!-- Mensaje informativo -->
+  <div *ngIf="reservaForm.get('fechaEntrada')?.value && reservaForm.get('fechaSalida')?.value" 
+       class="text-info small mt-1">
+    Mostrando {{ getHabitacionesDisponibles(
+      reservaForm.get('fechaEntrada')?.value, 
+      reservaForm.get('fechaSalida')?.value
+    ).length }} de {{ habitaciones.length }} habitaciones disponibles
+  </div>
+</div>
+
+
+
 
                         <div class="mb-3">
                             <label for="fechaEntrada" class="form-label">Fecha de Entrada</label>

@@ -28,7 +28,7 @@ export class ReservasComponent implements OnInit, AfterViewInit {
   modalText: string = 'Nueva Reserva';
   selectedReserva: ReservaResponse | null = null;
   isEditMode: boolean = false;
-  showActions: boolean = false;
+  showActions: boolean = true;
 
   @ViewChild('reservaModalRef') reservaModalEl!: ElementRef;
   private modalInstance!: any;
@@ -65,12 +65,12 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     }
   }
 
-  ngAfterViewInit(): void {
-    this.modalInstance = new bootstrap.Modal(this.reservaModalEl.nativeElement, { keyboard: false });
-    this.reservaModalEl.nativeElement.addEventListener('hidden.bs.modal', () => {
-      this.resetForm();
-    });
-  }
+ngAfterViewInit(): void {
+  this.modalInstance = new bootstrap.Modal(this.reservaModalEl.nativeElement, { keyboard: false });
+  this.reservaModalEl.nativeElement.addEventListener('hidden.bs.modal', () => {
+    this.resetForm();
+  });
+}
 
   listarHuespedes(): void {
     this.huespedesService.getHuespedes().subscribe({
@@ -94,7 +94,9 @@ export class ReservasComponent implements OnInit, AfterViewInit {
       next: (resp) => {
         this.habitaciones = resp;
         console.log('🔍 HABITACIONES - Datos cargados:', this.habitaciones);
-      },
+      }
+      ,
+
       error: (err) => {
         console.error('Error al cargar habitaciones', err);
         Swal.fire({
@@ -103,7 +105,9 @@ export class ReservasComponent implements OnInit, AfterViewInit {
           text: 'No se pudieron cargar las habitaciones'
         });
       }
+      
     });
+    
   }
 
   // MÉTODOS PARA MOSTRAR NOMBRES EN LA TABLA
@@ -241,6 +245,15 @@ export class ReservasComponent implements OnInit, AfterViewInit {
         return;
       }
 
+       const habitacionReservada = this.validarHabitacionReservada(
+      reservaData.idHabitacion,
+      reservaData.fechaEntrada,
+      reservaData.fechaSalida,
+      this.isEditMode ? reservaData.id || null : null
+    );
+
+   
+
       if (this.isEditMode) {
         this.reservasService.putReserva(reservaData, reservaData.id!).subscribe({
           next: updatedReserva => {
@@ -290,27 +303,202 @@ export class ReservasComponent implements OnInit, AfterViewInit {
     }
   }
 
-  editReserva(reserva: ReservaResponse): void {
+
+
+
+    checkIn(reserva: ReservaResponse): void {
+    Swal.fire({
+      title: 'Confirmar Check-In',
+      html: `¿Estás seguro de realizar el check-in para <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong>?<br>
+             Habitación: <strong>${reserva.Habitacion.numero}</strong><br>
+             Fecha de entrada: <strong>${this.formatDateForInput(reserva.fechaEntrada)}</strong>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, hacer Check-in',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#0dcaf0'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.actualizarEstadoReserva(reserva.id, 2, 'Check-in realizado exitosamente');
+      }
+    });
+  }
+
+  // CHECK-OUT: En curso → Finalizada
+  checkOut(reserva: ReservaResponse): void {
+    // Calcular estadía real
+    const fechaEntrada = new Date(reserva.fechaEntrada);
+    const fechaCheckout = new Date();
+    const diffTime = Math.abs(fechaCheckout.getTime() - fechaEntrada.getTime());
+    const nochesReales = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const totalReal = nochesReales * reserva.Habitacion.precio;
+
+    Swal.fire({
+      title: 'Confirmar Check-Out',
+      html: `¿Estás seguro de realizar el check-out para <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong>?<br>
+             Habitación: <strong>${reserva.Habitacion.numero}</strong><br>
+             Estadía real: <strong>${nochesReales} noches</strong><br>
+             Total a cobrar: <strong>$${totalReal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, hacer Check-out',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ffc107'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Crear objeto ReservaRequest con solo los campos necesarios
+        const reservaActualizada: ReservaRequest = {
+          id: reserva.id,
+          idHuesped: reserva.Huesped.id,
+          idHabitacion: reserva.Habitacion.id,
+          fechaEntrada: reserva.fechaEntrada,
+          fechaSalida: reserva.fechaSalida,
+          noches: nochesReales,
+          total: totalReal,
+          idEstado: 3 // Finalizada
+        };
+        
+        this.reservasService.putReserva(reservaActualizada, reserva.id).subscribe({
+          next: (updatedReserva) => {
+            const index = this.reservas.findIndex(r => r.id === updatedReserva.id);
+            if (index !== -1) this.reservas[index] = updatedReserva;
+            
+            Swal.fire({
+              icon: 'success',
+              title: 'Check-out Completado',
+              html: `Check-out realizado exitosamente para <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong><br>
+                     Total cobrado: <strong>$${totalReal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>`
+            });
+          },
+          error: (err) => {
+            console.error('Error al hacer check-out:', err);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'No se pudo realizar el check-out'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // MODIFICAR FECHAS (para reservas Confirmadas y En curso)
+  modificarFechas(reserva: ReservaResponse): void {
     this.isEditMode = true;
     this.selectedReserva = reserva;
-    this.modalText = 'Editando Reserva';
+    this.modalText = 'Modificar Fechas de Reserva';
     
-    this.updateDateValidators();
-    
-    // CORREGIDO: Usar directamente el idHuesped de la reserva
+    // Solo permitir modificar fechas y estado
     this.reservaForm.patchValue({ 
       id: reserva.id,
-      Huesped: reserva.Huesped.id, // ← Usar directamente el ID
-      Habitacion: reserva.Habitacion.numero,
+      idHuesped: reserva.Huesped.id,
+      idHabitacion: reserva.Habitacion.id,
       fechaEntrada: this.formatDateForInput(reserva.fechaEntrada),
       fechaSalida: this.formatDateForInput(reserva.fechaSalida),
       noches: reserva.noches,
       total: reserva.total,
-      idEstado: Number(reserva.idEstado) // ← Asegurar que sea número
+      idEstado: reserva.idEstado
     });
+    
+    // Deshabilitar campos que no se pueden modificar
+    this.reservaForm.get('idHuesped')?.disable();
+    this.reservaForm.get('idHabitacion')?.disable();
     
     this.modalInstance.show();
   }
+
+  // CANCELAR RESERVA: Confirmada → Cancelada
+  cancelarReserva(reserva: ReservaResponse): void {
+    Swal.fire({
+      title: 'Cancelar Reserva',
+      html: `¿Estás seguro de cancelar la reserva de <strong>${reserva.Huesped.nombre} ${reserva.Huesped.apellido}</strong>?<br>
+             Habitación: <strong>${reserva.Habitacion.numero}</strong><br>
+             Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Cancelar',
+      cancelButtonText: 'Mantener Reserva',
+      confirmButtonColor: '#dc3545'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.actualizarEstadoReserva(reserva.id, 4, 'Reserva cancelada exitosamente');
+      }
+    });
+  }
+  
+  // MÉTODO GENERAL PARA ACTUALIZAR ESTADO
+  private actualizarEstadoReserva(reservaId: number, nuevoEstado: number, mensajeExito: string): void {
+    const reserva = this.reservas.find(r => r.id === reservaId);
+    if (!reserva) return;
+
+    // Crear objeto ReservaRequest con solo los campos necesarios
+    const reservaActualizada: ReservaRequest = {
+      id: reserva.id,
+      idHuesped: reserva.Huesped.id,
+      idHabitacion: reserva.Habitacion.id,
+      fechaEntrada: reserva.fechaEntrada,
+      fechaSalida: reserva.fechaSalida,
+      noches: reserva.noches,
+      total: reserva.total,
+      idEstado: nuevoEstado
+    };
+
+    this.reservasService.putReserva(reservaActualizada, reservaId).subscribe({
+      next: (updatedReserva) => {
+        const index = this.reservas.findIndex(r => r.id === updatedReserva.id);
+        if (index !== -1) this.reservas[index] = updatedReserva;
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Éxito',
+          text: mensajeExito
+        });
+      },
+      error: (err) => {
+        console.error('Error al actualizar estado:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo actualizar el estado de la reserva'
+        });
+      }
+    });
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+  editReserva(reserva: ReservaResponse): void {
+  this.isEditMode = true;
+  this.selectedReserva = reserva;
+  this.modalText = 'Editando Reserva';
+  
+  this.updateDateValidators();
+  
+  // CORREGIDO: Usar los nombres correctos de los campos
+  this.reservaForm.patchValue({ 
+    id: reserva.id,
+    idHuesped: reserva.Huesped, // ← Campo correcto
+    idHabitacion: reserva.idhabitacion, // ← Campo correcto
+    fechaEntrada: this.formatDateForInput(reserva.fechaEntrada),
+    fechaSalida: this.formatDateForInput(reserva.fechaSalida),
+    noches: reserva.noches,
+    total: reserva.total,
+    idEstado: Number(reserva.idEstado)
+  });
+  
+  this.modalInstance.show();
+}
 
   private showDateError(message: string): void {
     Swal.fire({
@@ -396,19 +584,40 @@ export class ReservasComponent implements OnInit, AfterViewInit {
   }
 
   private setupDateValidators(): void {
-    this.reservaForm.get('fechaEntrada')?.valueChanges.subscribe(() => {
-      this.reservaForm.get('fechaSalida')?.updateValueAndValidity();
-      this.calcularNochesYTotal();
-    });
+  this.reservaForm.get('fechaEntrada')?.valueChanges.subscribe(() => {
+    this.reservaForm.get('fechaSalida')?.updateValueAndValidity();
+    this.calcularNochesYTotal();
+    this.actualizarHabitacionesDisponibles();
+  });
 
-    this.reservaForm.get('fechaSalida')?.valueChanges.subscribe(() => {
-      this.calcularNochesYTotal();
-    });
+  this.reservaForm.get('fechaSalida')?.valueChanges.subscribe(() => {
+    this.calcularNochesYTotal();
+    this.actualizarHabitacionesDisponibles();
+  });
 
-    this.reservaForm.get('idHabitacion')?.valueChanges.subscribe(() => {
-      this.calcularNochesYTotal();
-    });
+  this.reservaForm.get('idHabitacion')?.valueChanges.subscribe(() => {
+    this.calcularNochesYTotal();
+  });
+}
+
+// Método para actualizar la lista de habitaciones disponibles
+actualizarHabitacionesDisponibles(): void {
+  const fechaEntrada = this.reservaForm.get('fechaEntrada')?.value;
+  const fechaSalida = this.reservaForm.get('fechaSalida')?.value;
+  
+  // Si ambas fechas están seleccionadas, actualizar la lista de habitaciones
+  if (fechaEntrada && fechaSalida) {
+    const habitacionesDisponibles = this.getHabitacionesDisponibles(fechaEntrada, fechaSalida);
+    
+    // Si la habitación actualmente seleccionada ya no está disponible, limpiar la selección
+    const idHabitacionActual = this.reservaForm.get('idHabitacion')?.value;
+    if (idHabitacionActual && !habitacionesDisponibles.find(h => h.id === idHabitacionActual)) {
+      this.reservaForm.patchValue({ idHabitacion: null });
+    }
   }
+}
+
+
 
   calcularNochesYTotal(): void {
     const fechaEntrada = this.reservaForm.get('fechaEntrada')?.value;
@@ -432,6 +641,80 @@ export class ReservasComponent implements OnInit, AfterViewInit {
       }
     }
   }
+
+ getHabitacionesDisponibles(fechaEntrada: string, fechaSalida: string): HabitacionResponse[] {
+  if (!fechaEntrada || !fechaSalida) {
+    return this.habitaciones; // Si no hay fechas, mostrar todas
+  }
+
+  return this.habitaciones.filter(habitacion => {
+    // Verificar si la habitación está reservada en las fechas seleccionadas
+    const estaReservada = this.validarHabitacionReservada(
+      habitacion.id,
+      fechaEntrada,
+      fechaSalida
+    );
+    
+    return !estaReservada; // Devolver solo las NO reservadas
+  });
+}
+
+
+validarHabitacionReservada(
+  idHabitacion: number, 
+  fechaEntrada: string, 
+  fechaSalida: string, 
+  excludeReservaId: number | null = null
+): boolean {
+  
+  // Validaciones básicas
+  if (!idHabitacion || !fechaEntrada || !fechaSalida) {
+    return false;
+  }
+  
+  const entrada = new Date(fechaEntrada);
+  const salida = new Date(fechaSalida);
+  
+  console.log(`🔍 Validando habitación ${idHabitacion} del ${fechaEntrada} al ${fechaSalida}`);
+  
+  // Buscar reservas para la misma habitación
+  const reservasHabitacion = this.reservas.filter(reserva => {
+    // Excluir la reserva actual si estamos editando
+    if (excludeReservaId && reserva.id === excludeReservaId) {
+      return false;
+    }
+    // Solo reservas de la misma habitación
+    return reserva.Habitacion.id === idHabitacion;
+  });
+  
+  console.log(`📊 Reservas encontradas para habitación ${idHabitacion}:`, reservasHabitacion.length);
+  
+  // Verificar conflictos de fechas
+  for (const reserva of reservasHabitacion) {
+    const reservaEntrada = new Date(reserva.fechaEntrada);
+    const reservaSalida = new Date(reserva.fechaSalida);
+    
+    console.log(`📅 Comparando con reserva ${reserva.id}: ${reserva.fechaEntrada} al ${reserva.fechaSalida}`);
+    
+    // Verificar superposición de fechas
+    const hayConflicto = 
+      (entrada < reservaSalida && salida > reservaEntrada);
+    
+    if (hayConflicto) {
+      console.warn(`🚫 CONFLICTO: Habitación ${idHabitacion} ya reservada del ${reserva.fechaEntrada} al ${reserva.fechaSalida}`);
+      return true; // Está reservada
+    }
+  }
+  
+  console.log(`✅ DISPONIBLE: Habitación ${idHabitacion} libre del ${fechaEntrada} al ${fechaSalida}`);
+  return false; // Está disponible
+}
+ private formatDateForDisplay(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES');
+  }
+
+
 
   // MAP CORREGIDO - Usar números como keys
   reservaMap: { [key: number]: string } = {

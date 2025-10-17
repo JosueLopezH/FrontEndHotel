@@ -13,6 +13,7 @@ import { HuespedResponse } from "./Huesped.models";
 }
 
    export interface ReservaResponse {
+    idhabitacion: number;
     id: number;
     Huesped: {  // ← CON MAYÚSCULA
         id: number;
