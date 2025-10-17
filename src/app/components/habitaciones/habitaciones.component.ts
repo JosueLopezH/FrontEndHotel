@@ -192,5 +192,7 @@ export class HabitacionesComponent implements OnInit, AfterViewInit {
         '4': 'En Mantenimiento'
     };
 
+   
+
 
 }

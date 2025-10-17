@@ -21,12 +21,12 @@
         <tbody>
             <tr style="text-align: center;" *ngFor="let huesped of huespedes; let i = index">
                 <td>{{ i + 1 }}</td>
-                <td hidden>{{ huesped.id }}</td>
+                <td hidden>{{ huesped.idHuesped }}</td>
                 <td>{{ huesped.nombre }}</td>
                 <td>{{ huesped.apellido }}</td>
                 <td>{{ huesped.email }}</td>
                 <td>{{ huesped.telefono }}</td>
-                <td>{{ huesped.idDocumento }}</td>
+                <td>{{documentoMap[huesped.idDocumento + ''] }}</td>
                 <td>{{ huesped.nacionalidad }}</td>
                 <td *ngIf="showActions">
                     <button class="btn btn-primary btn-sm me-1" (click)="editHuesped(huesped)"><i
@@ -65,9 +65,13 @@
                             <input id="telefono" class="form-control" formControlName="telefono" maxlength="30" />
                         </div>
                         <div class="mb-3">
-                            <label for="idDocumento" class="form-label">Documento</label>
-                            <input id="idDocumento" class="form-control" formControlName="idDocumento" maxlength="30" />
-                        </div>
+                            <label for="idDocumento" class="form-label">Selecciona un Documento</label>
+                                 <select id="idDocumento" class="form-control" formControlName="idDocumento">
+    
+                                     <option value="1" selected>INE</option>
+                                     <option value="2">Pasaporte</option>
+                                 </select>
+                                </div>
                         <div class="mb-3">
                             <label for="nacionalidad" class="form-label">Nacionalidad</label>
                             <input id="nacionalidad" class="form-control" formControlName="nacionalidad" maxlength="30" />

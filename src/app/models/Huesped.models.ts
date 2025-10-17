@@ -8,7 +8,7 @@
     }
 
     export interface HuespedResponse {
-    id: number;
+    idHuesped: number;
     nombre: string;
     apellido: string;
     email: string;

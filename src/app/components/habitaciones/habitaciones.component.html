@@ -53,8 +53,14 @@
                             <input id="numero" class="form-control" formControlName="numero" maxlength="30" />
                         </div>
                         <div class="mb-3">
-                            <label for="tipo" class="form-label">Tipo de Habitación</label>
-                            <input id="tipo" class="form-control" formControlName="tipo" maxlength="30" />
+                             <label for="tipo" class="form-label">Selecciona un Tipo</label>
+                                 <select id="tipo" class="form-control" formControlName="tipo">
+    
+                                     <option value="Individual" selected>Individual</option>
+                                     <option value="Doble">Doble</option>
+                                     <option value="Suite">Suite</option>
+                                     <option value="Familiar">Familiar</option>
+                                 </select>
                         </div>
                         <div class="mb-3">
                             <label for="descripcion" class="form-label">Descripcion</label>

@@ -4,6 +4,8 @@
     import { HttpClient } from '@angular/common/http';
     import { catchError, map, Observable, of } from 'rxjs';
 
+
+
     @Injectable({
     providedIn: 'root'
     })
@@ -49,5 +51,10 @@
         })
         );
     }
+
+
+  getHabitacionesDisponibles(): Observable<HabitacionResponse[]> {
+    return this.http.get<HabitacionResponse[]>(`${this.apiUrl}/disponibles`);
+  }
 
     }

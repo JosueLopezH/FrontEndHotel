@@ -113,9 +113,25 @@ import { HuespedesService } from '../../services/huespedes.service';
                 });
                 this.resetForm();
                 this.modalInstance.hide();
-            }
+            },
+            error: err => {
+    let errorMessage = 'Error al registrar el huesped';
+    
+    // Acceso directo al mensaje específico del backend
+    if (err.error && err.error.mensaje) {
+        errorMessage = err.error.mensaje;
+    }
+    
+    Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        html: errorMessage
+    });
+}
             });
+            
         }
+        
         }
     }
 
@@ -142,5 +158,10 @@ import { HuespedesService } from '../../services/huespedes.service';
         }
         });
     }
+
+    documentoMap: { [key: string]: string } = {
+        '1': 'INE',
+        '2': 'Pasaporte'
+    };
 
     }
